@@ -1,0 +1,13 @@
+[Unit]
+Description=MPPT Connection Application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=clearbot
+EnvironmentFile=/opt/fishcam/env
+ExecStart=/home/clearbot/.local/bin/bt1
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

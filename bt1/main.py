@@ -1,7 +1,15 @@
+import os
+import asyncio
+import websockets
+import json
 from threading import Timer
 import logging 
-from BLE import DeviceManager, Device
-from Utils import create_request_payload, parse_charge_controller_info, parse_set_load_response, Bytes2Int
+from bt1.ble import DeviceManager, Device
+from bt1.utils import create_request_payload, parse_charge_controller_info, parse_set_load_response, Bytes2Int
+
+logging.basicConfig(level=logging.INFO)
+
+SERVER_URI = os.environ.get("SERVER_URI", "wss://api.fishcam.openoceancam.com/ws")
 
 DEVICE_ID = 255
 POLL_INTERVAL = 30 # seconds
@@ -20,7 +28,7 @@ WRITE_PARAMS_LOAD = {
     'REGISTER': 266
 }
 
-class BTOneApp:
+class BT1:
     def __init__(self, adapter_name, mac_address, alias=None, on_connected=None, on_data_received=None, interval = POLL_INTERVAL):
         self.adapter_name = adapter_name
         self.connected_callback = on_connected
@@ -43,13 +51,13 @@ class BTOneApp:
         operation = Bytes2Int(value, 1, 1)
 
         if operation == 3:
-            logging.info("on_data_received: response for read operation")
+            logging.debug("on_data_received: response for read operation")
             self.data = parse_charge_controller_info(value)
             if self.data_received_callback is not None:
                 self.data_received_callback(self, self.data)
         elif operation == 6:
             self.data = parse_set_load_response(value)
-            logging.info("on_data_received: response for write operation")
+            logging.debug("on_data_received: response for write operation")
             if self.data_received_callback is not None:
                 self.data_received_callback(self, self.data)
         else:
@@ -63,12 +71,12 @@ class BTOneApp:
         self.timer.start()
 
     def __read_params(self):
-        logging.info("reading params")
+        logging.debug("reading params")
         request = create_request_payload(DEVICE_ID, READ_PARAMS["FUNCTION"], READ_PARAMS["REGISTER"], READ_PARAMS["WORDS"])
         self.device.characteristic_write_value(request)
 
     def set_load(self, value = 0):
-        logging.info("setting load {}".format(value))
+        logging.debug("setting load {}".format(value))
         request = create_request_payload(DEVICE_ID, WRITE_PARAMS_LOAD["FUNCTION"], WRITE_PARAMS_LOAD["REGISTER"], value)
         self.device.characteristic_write_value(request)
 
@@ -76,3 +84,30 @@ class BTOneApp:
         if self.timer is not None and self.timer.is_alive():
             self.timer.cancel()
         self.device.disconnect()
+
+async def send_data(data):
+    async with websockets.connect(SERVER_URI) as websocket:
+        await websocket.send(json.dumps(data))
+
+def on_connected(app: BT1):
+    app.poll_params() # OR app.set_load(1)
+
+def on_data_received(app: BT1, data):
+    logging.info("{} => {}".format(app.device.alias(), data))
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(send_data(data=data))
+
+def main():
+    ADAPTER = "hci0"
+    MAC_ADDR = "DC:0D:30:9C:64:14"
+    DEVICE_ALIAS = "BT-TH-309C6414"
+    POLL_INTERVAL = 1 # read data interval (seconds)
+    
+    logging.info("Using server:".format(SERVER_URI))
+
+    bt1 = BT1(ADAPTER, MAC_ADDR, DEVICE_ALIAS, on_connected, on_data_received, POLL_INTERVAL)
+    bt1.connect()
+
+
+if __name__ == "__main__":
+    main()

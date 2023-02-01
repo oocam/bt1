@@ -2,5 +2,9 @@ batch-push.py
 solar-reader.py
 *.pyc
 .vscode/sftp.json
-RelayApp.py
-relay.py
+
+__pycache__
+
+build/
+*.egg-info
+
