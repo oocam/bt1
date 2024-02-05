@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 User=clearbot
-EnvironmentFile=/opt/fishcam/env
+EnvironmentFile=/opt/clearbot/robot_config
 ExecStart=/home/clearbot/.local/bin/bt1
 Restart=always
 
