@@ -99,7 +99,7 @@ def on_data_received(app: BT1, data):
 
 def main():
     ADAPTER = "hci0"
-    MAC_ADDR = "DC:0D:30:9C:64:14"
+    MAC_ADDR = "84:C6:92:13:C5:80"
     DEVICE_ALIAS = "BT-TH-309C6414"
     POLL_INTERVAL = 1 # read data interval (seconds)
     
