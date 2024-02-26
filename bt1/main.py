@@ -6,10 +6,17 @@ from threading import Timer
 import logging 
 from bt1.ble import DeviceManager, Device
 from bt1.utils import create_request_payload, parse_charge_controller_info, parse_set_load_response, Bytes2Int
+import csv
+import os.path
+from datetime import datetime, date
 
 logging.basicConfig(level=logging.INFO)
-
+today = date.today()
+today_string = today.strftime("%Y-%m-%d")
 SERVER_URI = os.environ.get("SERVER_URI", "wss://api.fishcam.openoceancam.com/ws")
+logging_dir = "/home/clearbot/logging"
+logging_csv = logging_dir + '/' + today_string + "-battery_status.csv"
+headerList = ['createAt', 'function' , 'battery_percentage', 'battery_voltage', 'battery_current', 'controller_temperature', 'battery_temperature', 'load_status', 'load_voltage', 'load_current', 'load_power', 'pv_voltage', 'pv_current', 'pv_power', 'max_charging_power_today', 'max_discharging_power_today', 'charging_amp_hours_today', 'discharging_amp_hours_today', 'power_generation_today', 'power_consumption_today', 'power_consumption_total', 'power_generation_total', 'charging_status']
 
 DEVICE_ID = 255
 POLL_INTERVAL = 30 # seconds
@@ -94,8 +101,24 @@ def on_connected(app: BT1):
 
 def on_data_received(app: BT1, data):
     logging.info("{} => {}".format(app.device.alias(), data))
+    now = datetime.now()
+    date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
+    data['createAt'] = date_time
+    write_data_to_csv(data)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(send_data(data=data))
+
+def create_csv_with_header():
+    with open(logging_csv, 'w') as file:
+        dw = csv.DictWriter(file, delimiter=',', fieldnames=headerList)
+        dw.writeheader()
+        file.close()
+
+def write_data_to_csv(data_dict):
+    with open(logging_csv, 'a') as file:
+        dictwriter_object = csv.DictWriter(file, fieldnames=headerList)
+        dictwriter_object.writerow(data_dict)
+        file.close()
 
 def main():
     ADAPTER = "hci0"
@@ -104,7 +127,17 @@ def main():
     POLL_INTERVAL = 1 # read data interval (seconds)
     
     logging.info("Using server:".format(SERVER_URI))
-
+    
+    # Check if csv logging file existed
+    if not os.path.isfile(logging_csv):
+        if not os.path.exists(logging_dir):
+            os.mkdir(logging_dir)
+        else: 
+            print("Folder exists")
+        create_csv_with_header()
+    else:
+        print("Csv file exists")
+    
     bt1 = BT1(ADAPTER, MAC_ADDR, DEVICE_ALIAS, on_connected, on_data_received, POLL_INTERVAL)
     bt1.connect()
 
