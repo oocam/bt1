@@ -7,6 +7,10 @@ import logging
 from bt1.ble import DeviceManager, Device
 from bt1.utils import create_request_payload, parse_charge_controller_info, parse_set_load_response, Bytes2Int
 
+from datetime import datetime
+from gql import gql, Client
+import time
+
 logging.basicConfig(level=logging.INFO)
 
 SERVER_URI = os.environ.get("SERVER_URI", "wss://api.fishcam.openoceancam.com/ws")
@@ -97,9 +101,33 @@ def on_data_received(app: BT1, data):
     loop = asyncio.get_event_loop()
     loop.run_until_complete(send_data(data=data))
 
+async def upload_result(data):
+    update_time = datetime.utcnow().isoformat()
+    transport = RequestHTTPTransport(url = self.BACKEND_URL)
+    client = Client(transport=transport, fetch_schema_from_transport=True)
+    
+    query = gql("""
+        mutation LogBatteryStatus($data: BatteryStatusArgs!) {
+            logBatteryStatus(data: $data) {
+                id
+            }
+        }
+    """)
+    try:
+        params = {
+            "data": {
+                "batteryStatus":{
+                    "battery_percentage": data.battery_percentage,
+                    "battery_voltage": data.battery_voltage,
+                    "battery_current": data.battery_current,
+                    "controller_temperature": temperature
+                    },
+                "readingTime": update_time}
+                }
+
 def main():
     ADAPTER = "hci0"
-    MAC_ADDR = "DC:0D:30:9C:64:14"
+    MAC_ADDR = "84:C6:92:13:C5:80"
     DEVICE_ALIAS = "BT-TH-309C6414"
     POLL_INTERVAL = 1 # read data interval (seconds)
     
