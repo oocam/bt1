@@ -144,9 +144,11 @@ async def upload_result(data):
                     },
                 "readingTime": update_time}
                 }
+        #result = client.execute(query, variable_values=params)
     except Exception as error:
         print("upload error")
         print(error)
+
 def main():
     ADAPTER = "hci0"
     MAC_ADDR = "84:C6:92:13:C5:80"
