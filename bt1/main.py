@@ -6,7 +6,6 @@ from threading import Timer
 import logging 
 from bt1.ble import DeviceManager, Device
 from bt1.utils import create_request_payload, parse_charge_controller_info, parse_set_load_response, Bytes2Int
-
 from datetime import datetime
 from gql import gql, Client
 import time
@@ -31,6 +30,9 @@ WRITE_PARAMS_LOAD = {
     'FUNCTION': 6,
     'REGISTER': 266
 }
+
+previous_time = 0.0
+timer_period = 60.0
 
 class BT1:
     def __init__(self, adapter_name, mac_address, alias=None, on_connected=None, on_data_received=None, interval = POLL_INTERVAL):
@@ -92,6 +94,9 @@ class BT1:
 async def send_data(data):
     async with websockets.connect(SERVER_URI) as websocket:
         await websocket.send(json.dumps(data))
+        dt = time.time() - previous_time
+        if dt > timer_period:
+            await upload_result(json.dumps(data))
 
 def on_connected(app: BT1):
     app.poll_params() # OR app.set_load(1)
@@ -120,10 +125,28 @@ async def upload_result(data):
                     "battery_percentage": data.battery_percentage,
                     "battery_voltage": data.battery_voltage,
                     "battery_current": data.battery_current,
-                    "controller_temperature": temperature
+                    "controller_temperature": data.controller_temperature,
+                    "battery_temperature": data.battery_temperature,
+                    "load_status": data.load_status,
+                    "load_voltage": data.load_voltage,
+                    "load_current": data.load_current,
+                    "pv_power": data.pv_power,
+                    "max_charging_power_today": data.max_charging_power_today,
+                    "max_discharging_power_today": data.max_discharging_power_today,
+                    "charging_amp_hours_today": data.max_charging_amp_hours_today,
+                    "discharging_amp_hours_today": data.discharging_amp_hours_today,
+                    "power_generation_today": data.power_generation_today,
+                    "power_consumption_today": data.power_consumption_today,
+                    "power_consumption_total": data.power_consumption_total,
+                    "power_generation_total": data.power_generation_total,
+                    "charging_status": data.charging_status,
                     },
                 "readingTime": update_time}
                 }
+    except Exception as error:
+        try:
+            print("upload error")
+            print(error)
 
 def main():
     ADAPTER = "hci0"
