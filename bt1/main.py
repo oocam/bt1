@@ -14,7 +14,9 @@ import time
 logging.basicConfig(level=logging.INFO)
 
 SERVER_URI = os.environ.get("SERVER_URI", "wss://api.fishcam.openoceancam.com/ws")
-BACKEND_URL = os.environ.get("BACKEND_URL", "http://10.8.0.5:4000/graphql")
+#BACKEND_URL = os.environ.get("BACKEND_URL", "http://10.8.0.5:4000/graphql")
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:4000/graphql")
+
 
 DEVICE_ID = 255
 POLL_INTERVAL = 30 # seconds
@@ -132,6 +134,9 @@ async def upload_result(data):
                     "load_status": data['load_status'],
                     "load_voltage": data['load_voltage'],
                     "load_current": data['load_current'],
+                    "load_power": data['load_power'],
+                    "pv_voltage": data['pv_voltage'],
+                    "pv_current": data['pv_current'],
                     "pv_power": data['pv_power'],
                     "max_charging_power_today": data['max_charging_power_today'],
                     "max_discharging_power_today": data['max_discharging_power_today'],
@@ -144,7 +149,9 @@ async def upload_result(data):
                     },
                 "readingTime": update_time}
                 }
-        #result = client.execute(query, variable_values=params)
+        result = client.execute(query, variable_values=params)
+        print("result")
+        print(result)
     except Exception as error:
         print("upload error")
         print(error)
