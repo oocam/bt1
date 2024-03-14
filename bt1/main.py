@@ -112,7 +112,7 @@ def on_data_received(app: BT1, data):
     loop.run_until_complete(send_data(data=data))
 
 async def upload_result(data):
-    update_time = datetime.utcnow().isoformat()
+    update_time = datetime.now().isoformat()
     transport = RequestsHTTPTransport(url = BACKEND_URL)
     client = Client(transport=transport, fetch_schema_from_transport=True)
     
