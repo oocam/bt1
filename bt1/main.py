@@ -14,9 +14,7 @@ import time
 logging.basicConfig(level=logging.INFO)
 
 SERVER_URI = os.environ.get("SERVER_URI", "wss://api.fishcam.openoceancam.com/ws")
-#BACKEND_URL = os.environ.get("BACKEND_URL", "http://10.8.0.5:4000/graphql")
-BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:4000/graphql")
-
+BACKEND_URL = os.environ.get("BACKEND_URL", "")
 
 DEVICE_ID = 255
 POLL_INTERVAL = 30 # seconds
@@ -98,9 +96,12 @@ class BT1:
 async def send_data(data):
     async with websockets.connect(SERVER_URI) as websocket:
         await websocket.send(json.dumps(data))
-        dt = time.time() - previous_time
+        global previous_time
+        current_time = time.time()
+        dt = current_time - previous_time
         if dt > timer_period:
             await upload_result(data)
+            previous_time = current_time
 
 def on_connected(app: BT1):
     app.poll_params() # OR app.set_load(1)
@@ -150,8 +151,6 @@ async def upload_result(data):
                 "readingTime": update_time}
                 }
         result = client.execute(query, variable_values=params)
-        print("result")
-        print(result)
     except Exception as error:
         print("upload error")
         print(error)
