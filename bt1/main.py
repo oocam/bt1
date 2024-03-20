@@ -34,7 +34,7 @@ WRITE_PARAMS_LOAD = {
 }
 
 previous_time = 0.0
-timer_period = 60.0
+timer_period = 600.0
 
 class BT1:
     def __init__(self, adapter_name, mac_address, alias=None, on_connected=None, on_data_received=None, interval = POLL_INTERVAL):
